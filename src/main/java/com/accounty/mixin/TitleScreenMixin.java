@@ -1,12 +1,12 @@
 package com.accounty.mixin;
 
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.TitleScreen;
-import net.minecraft.client.session.Session;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.User;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.screens.TitleScreen;
+import net.minecraft.network.chat.Component;
+import net.minecraft.ChatFormatting;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -16,34 +16,31 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public class TitleScreenMixin {
 
     @Inject(method = "render", at = @At("TAIL"))
-    private void renderAccountStatus(DrawContext context, int mouseX, int mouseY, float delta, CallbackInfo ci) {
-        MinecraftClient client = MinecraftClient.getInstance();
-        Session session = client.getSession();
+    private void renderAccountStatus(GuiGraphics graphics, int mouseX, int mouseY, float delta, CallbackInfo ci) {
+        Minecraft client = Minecraft.getInstance();
+        User session = client.getUser();
 
         if (session == null) return;
 
-        // Verify if account is MSA/Mojang authenticated (Premium) vs Offline/Legacy
-        Session.AccountType type = session.getAccountType();
-        boolean isPremium = (type == Session.AccountType.MOJANG || type == Session.AccountType.MSA);
+        User.Type type = session.getType();
+        boolean isPremium = (type == User.Type.MOJANG || type == User.Type.MSA);
 
-        String username = session.getUsername();
-        Text statusText;
+        String username = session.getName();
+        Component statusText;
         if (isPremium) {
-            statusText = Text.literal("Account: " + username + " [")
-                    .append(Text.literal("PREMIUM").formatted(Formatting.GREEN, Formatting.BOLD))
+            statusText = Component.literal("Account: " + username + " [")
+                    .append(Component.literal("PREMIUM").withStyle(ChatFormatting.GREEN, ChatFormatting.BOLD))
                     .append("]");
         } else {
-            statusText = Text.literal("Account: " + username + " [")
-                    .append(Text.literal("OFFLINE").formatted(Formatting.RED, Formatting.BOLD))
+            statusText = Component.literal("Account: " + username + " [")
+                    .append(Component.literal("OFFLINE").withStyle(ChatFormatting.RED, ChatFormatting.BOLD))
                     .append("]");
         }
 
-        TextRenderer font = client.textRenderer;
-
-        // Positioned at the bottom-left, right above the vanilla Minecraft version string
+        Font font = client.font;
         int x = 2;
         int y = ((TitleScreen)(Object)this).height - 22;
 
-        context.drawTextWithShadow(font, statusText, x, y, 0xFFFFFFFF);
+        graphics.drawString(font, statusText, x, y, 0xFFFFFFFF, true);
     }
 }
